@@ -71,7 +71,7 @@ public class instructionFetch
 			String[] lineSplit = line.split(" ");
 			if(lineSplit.length < 3 && lineSplit.length > 1) //No Label for this instruction and not on data segment yet
 			{
-				if(lineSplit[0].equals("BNEZ") || lineSplit[0].equals("BEZ") || lineSplit[0].equals("BEQ") || lineSplit[0].equals("BNEQ"))
+				if(lineSplit[0].equals("BNEZ") || lineSplit[0].equals("BEZ") || lineSplit[0].equals("BEQ") || lineSplit[0].equals("BNE"))
 				{
 					Instruction curr = null;
 					String [] operands = lineSplit[1].split(",");
