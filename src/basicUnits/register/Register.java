@@ -6,11 +6,12 @@ public class Register<T extends Number> extends ClockDependentUnit
 {
 	private static final String[] PREFIXES = {"R", "F"};
 	private T value;
-	private String name;
+	private final String name;
 	
 	public Register(T value, String name)
 	{
 		super(Integer.MAX_VALUE);
+		this.name = name;
 	}
 	
 	public T getValue()
