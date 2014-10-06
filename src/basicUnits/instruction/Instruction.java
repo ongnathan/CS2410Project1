@@ -6,7 +6,6 @@ public class Instruction
 {
 	private static int instructionCounter = 0;
 	public final int instructionNum; //Holds the order of the instruction
-	public final int cycleTime;
 	public final Register<?> operandOne; //will be stored as "R" or "F" and then a number representing the String 
 	public final Register<?> operandTwo; //Could be immediate value too or register with offset
 	public final Register<?> destination;
@@ -50,7 +49,6 @@ public class Instruction
 		this.operandOne = operandOne;
 		this.operandTwo = operandTwo;
 		this.immediate = immediate;
-		this.cycleTime = cycleTime;
 	}
 	
 	public static InstructionType decodeInstructionFromString(String type)
