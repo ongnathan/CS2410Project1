@@ -1,6 +1,6 @@
 package basicUnits;
 
-public abstract class ClockDependentUnit
+public abstract class ClockDependentUnit implements ClockDependentInterface
 {
 	public final int numOperationsPerCycle;
 	private int numOperationsLeftThisCycle;
@@ -11,14 +11,14 @@ public abstract class ClockDependentUnit
 		this.numOperationsLeftThisCycle = this.numOperationsPerCycle;
 	}
 	
-	public final void newClockCycle()
-	{
-		this.numOperationsLeftThisCycle = this.numOperationsPerCycle;
-	}
-	
 	public final boolean canOperate()
 	{
 		return this.numOperationsLeftThisCycle > 0;
+	}
+	
+	public void newClockCycle()
+	{
+		this.numOperationsLeftThisCycle = this.numOperationsPerCycle;
 	}
 	
 	public boolean doOneOperation()
