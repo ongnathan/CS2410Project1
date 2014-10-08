@@ -18,7 +18,7 @@ public abstract class OperationalUnit extends ClockDependentUnit implements Cloc
 	
 	public OperationalUnit(int minLatency, boolean isPipelineable, ReservationStation reservationStation)
 	{
-		super(Integer.MAX_VALUE);
+		super(1);
 		this.minLatency = minLatency;
 		this.isPipelineable = isPipelineable;
 		this.pipeline = new Instruction[this.minLatency+1];
@@ -105,7 +105,7 @@ public abstract class OperationalUnit extends ClockDependentUnit implements Cloc
 	@Override
 	public boolean doOneOperation()
 	{
-		if(this.pipeline[this.pipeline.length-1] != null && super.doOneOperation())
+		if(this.pipeline[this.pipeline.length-1] != null && !this.outputIsReady && super.doOneOperation())
 		{
 			this.output = this.operate();
 			return true;
