@@ -70,6 +70,7 @@ public abstract class OperationalUnit extends ClockDependentUnit implements Cloc
 			return false;
 		}
 		
+		//TODO check if registers are ready to be read
 		this.pipeline[0] = this.reservationStation.getInstruction();
 		return this.pipeline[0] != null;
 	}

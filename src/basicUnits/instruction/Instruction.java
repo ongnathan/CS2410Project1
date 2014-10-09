@@ -6,9 +6,9 @@ public class Instruction
 {
 	private static int instructionCounter = 0;
 	public final int instructionNum; //Holds the order of the instruction
-	public final Register<?> operandOne; //will be stored as "R" or "F" and then a number representing the String 
-	public final Register<?> operandTwo; //Could be immediate value too or register with offset
-	public final Register<?> destination;
+	public final Register<? extends Number> operandOne; //will be stored as "R" or "F" and then a number representing the String 
+	public final Register<? extends Number> operandTwo; //Could be immediate value too or register with offset
+	public final Register<? extends Number> destination;
 	public final InstructionType instructionType; //Stores the actual operation like "add"
 	public final int immediate;
 //	public final boolean isBranch;
@@ -21,7 +21,7 @@ public class Instruction
 	 * @param operandTwo
 	 * @param cycleTime
 	 */
-	public Instruction(String instructionName, Register<?> destination, Register<?> operandOne, Register<?> operandTwo, int cycleTime)
+	public Instruction(String instructionName, Register<? extends Number> destination, Register<? extends Number> operandOne, Register<? extends Number> operandTwo, int cycleTime)
 	{
 		this(decodeInstructionFromString(instructionName),destination,operandOne,operandTwo,Integer.MIN_VALUE,cycleTime);
 	}
@@ -34,12 +34,12 @@ public class Instruction
 	 * @param immediate
 	 * @param cycleTime
 	 */
-	public Instruction(String instructionName, Register<?> destination, Register<?>operandOne, int immediate, int cycleTime)
+	public Instruction(String instructionName, Register<? extends Number> destination, Register<? extends Number> operandOne, int immediate, int cycleTime)
 	{
 		this(decodeInstructionFromString(instructionName),destination,operandOne,null,immediate,cycleTime);
 	}
 	
-	private Instruction(InstructionType instruction, Register<?> destination, Register<?> operandOne, Register<?> operandTwo, int immediate, int cycleTime)
+	private Instruction(InstructionType instruction, Register<? extends Number> destination, Register<? extends Number> operandOne, Register<? extends Number> operandTwo, int immediate, int cycleTime)
 	{
 		this.instructionNum = instructionCounter;
 		instructionCounter++;

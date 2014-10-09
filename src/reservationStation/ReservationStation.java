@@ -52,17 +52,17 @@ public class ReservationStation extends ClockDependentUnit implements ClockDepen
 		return this.inPipeline.poll();
 	}
 	
-	public void newClockCycle()
-	{
-		super.newClockCycle();
-	}
-	
-	public boolean doOneOperation()
-	{
-		if(!super.doOneOperation())
-		{
-			return false;
-		}
-		return true;
-	}
+//	public void newClockCycle()
+//	{
+//		super.newClockCycle();
+//	}
+//	
+//	public boolean doOneOperation()
+//	{
+//		if(!super.doOneOperation())
+//		{
+//			return false;
+//		}
+//		return true;
+//	}
 }
