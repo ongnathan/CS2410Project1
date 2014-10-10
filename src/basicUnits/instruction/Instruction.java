@@ -21,9 +21,9 @@ public class Instruction
 	 * @param operandTwo
 	 * @param cycleTime
 	 */
-	public Instruction(String instructionName, Register<? extends Number> destination, Register<? extends Number> operandOne, Register<? extends Number> operandTwo, int cycleTime)
+	public Instruction(String instructionName, Register<? extends Number> destination, Register<? extends Number> operandOne, Register<? extends Number> operandTwo)
 	{
-		this(decodeInstructionFromString(instructionName),destination,operandOne,operandTwo,Integer.MIN_VALUE,cycleTime);
+		this(decodeInstructionFromString(instructionName),destination,operandOne,operandTwo,Integer.MIN_VALUE);
 	}
 	
 	/**
@@ -34,12 +34,12 @@ public class Instruction
 	 * @param immediate
 	 * @param cycleTime
 	 */
-	public Instruction(String instructionName, Register<? extends Number> destination, Register<? extends Number> operandOne, int immediate, int cycleTime)
+	public Instruction(String instructionName, Register<? extends Number> destination, Register<? extends Number> operandOne, int immediate)
 	{
-		this(decodeInstructionFromString(instructionName),destination,operandOne,null,immediate,cycleTime);
+		this(decodeInstructionFromString(instructionName),destination,operandOne,null,immediate);
 	}
 	
-	private Instruction(InstructionType instruction, Register<? extends Number> destination, Register<? extends Number> operandOne, Register<? extends Number> operandTwo, int immediate, int cycleTime)
+	private Instruction(InstructionType instruction, Register<? extends Number> destination, Register<? extends Number> operandOne, Register<? extends Number> operandTwo, int immediate)
 	{
 		this.instructionNum = instructionCounter;
 		instructionCounter++;
@@ -53,7 +53,7 @@ public class Instruction
 	
 	public static InstructionType decodeInstructionFromString(String type)
 	{
-		type = type.replaceAll(".", "P");
+		type = type.replace(".", "P");
 		return InstructionType.valueOf(type);
 	}
 	
