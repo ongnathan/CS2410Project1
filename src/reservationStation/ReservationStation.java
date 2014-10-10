@@ -3,11 +3,10 @@ package reservationStation;
 import java.util.LinkedList;
 import java.util.Queue;
 
-import basicUnits.ClockDependentInterface;
 import basicUnits.ClockDependentUnit;
 import basicUnits.instruction.Instruction;
 
-public class ReservationStation extends ClockDependentUnit implements ClockDependentInterface
+public class ReservationStation extends ClockDependentUnit
 {
 	private final int maxInstructionsInQueue;
 	private final Queue<Instruction> instructionQueue;

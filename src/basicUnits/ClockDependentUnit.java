@@ -1,6 +1,6 @@
 package basicUnits;
 
-public abstract class ClockDependentUnit implements ClockDependentInterface
+public abstract class ClockDependentUnit
 {
 	public final int numOperationsPerCycle;
 	private int numOperationsLeftThisCycle;

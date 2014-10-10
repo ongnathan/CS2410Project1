@@ -32,5 +32,4 @@ public class BranchUnit extends OperationalUnit
 				throw new UnsupportedOperationException("The requested operation is not handled by this unit.");
 		}
 	}
-
 }
