@@ -30,11 +30,6 @@ public class instructionFetch extends ClockDependentUnit
 	{
 		return queue2.isEmpty();
 	}
-	public void reset()
-	{
-		for(Instruction a: queue2)
-			a.hasMoved = false;
-	}
 	public void update() //move nf instructions to queue2
 	{
 		while(super.canOperate() && queue2.size()!=queue2size)
@@ -42,7 +37,6 @@ public class instructionFetch extends ClockDependentUnit
 			if(currNum >= loadQueue.size())
 				return;
 			super.doOneOperation();
-			loadQueue.get(currNum).hasMoved = true;
 			queue2.add(loadQueue.get(currNum));
 			currNum++;
 		}
