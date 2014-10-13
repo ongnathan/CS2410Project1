@@ -1,14 +1,14 @@
-public class instructionDecode
+public class instructionDecode extends ClockDependentUnit
 {
-	int nd; //num instructions decoded every cycle
-	int ni; //queue length
+	int ni; //queue length 
+	//Can have nd instructions ready to be issued
 	Queue <Instruction> queue //for storing instructions before issuing them
 	int nw // instructions issued per cycle (external to this class possibly)
 	
-	public instructionDecode(int numDecoded, int queueLength)
+	public instructionDecode(int numDecoded, int queueLength) 
 	{
+		super(numDecoded);
 		queue = new ArrayDeque<Instruction>(ni);
-		nd = numDecoded;
 		ni = queueLength;
 	}
 	
@@ -16,10 +16,13 @@ public class instructionDecode
 	{
 		return queue.poll();
 	}
-	
+	public Instruction peek()
+	{
+		return queue.peek();
+	}
 	public boolean add(Instruction i)
 	{
-		if(!queue.size()==ni)
+		if(!queue.size()==ni && !super.doOneOperation())
 		{
 			queue.add(i);
 			return true;
