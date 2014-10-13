@@ -10,7 +10,7 @@ public class Instruction
 	public final InstructionType instructionType; //Stores the actual operation like "add"
 	public final int immediate;
 	public String branchLabel;
-	public boolean hasMoved;
+	//public boolean hasMoved;
 	
 	/**
 	 * R-Type
@@ -40,7 +40,7 @@ public class Instruction
 	
 	private Instruction(InstructionType instruction, Register<? extends Number> destination, Register<? extends Number> operandOne, Register<? extends Number> operandTwo, int immediate)
 	{
-		this.hasMoved = false;
+		//this.hasMoved = false;
 		this.instructionNum = instructionCounter;
 		instructionCounter++;
 		
