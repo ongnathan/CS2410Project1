@@ -14,11 +14,6 @@ public class instructionDecode extends ClockDependentUnit
 		queue = new ArrayDeque<Instruction>(ni);
 		ni = queueLength;
 	}
-	public void reset()
-	{
-		for (Instruction i : queue)
-			i.hasMoved = false;
-	}
 	public Instruction issue()
 	{
 		return queue.poll();
@@ -29,9 +24,8 @@ public class instructionDecode extends ClockDependentUnit
 	}
 	public boolean add(Instruction i)
 	{
-		if(!(queue.size()==ni) && super.doOneOperation() && i.hasMoved == false)
+		if(!(queue.size()==ni) && super.doOneOperation())
 		{
-			i.hasMoved = true;
 			queue.add(i);
 			return true;
 		}
