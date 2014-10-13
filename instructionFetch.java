@@ -1,54 +1,99 @@
 import java.util.*;
 import java.io.*;
-
-public class instructionFetch
+import basicUnits.instruction.Instruction;
+import basicUnits.ClockDependentUnit;
+import basicUnits.register.Register;
+public class instructionFetch extends ClockDependentUnit
 {
-	private Queue<Instruction> loadQueue; //holds all of the instructions to start with
-	private Queue<Instruction> instructionStorage; //auxillary data structure to hold all insturctions in case a branch occurs
+	private ArrayList<Instruction> loadQueue; //holds all of the instructions to start with
 	private Queue<Instruction> queue2; //holds the second set of instructions
+	public int currNum;
 	private int queue2size; //nq size of the fetch queue
 	private int numFetch;  //nf number of instructions to move to num fetch
 	public HashMap<String,Integer> labels;
 	
 	public instructionFetch(int nf, int queue2s)
 	{
-		loadQueue = new ArrayDeque<Instruction>();
-		instructionStorage = new ArrayDeque<Instruction>();
+		super(nf);
+		currNum = 0;
+		loadQueue = new ArrayList<Instruction>();
 		queue2size = queue2s;
 		queue2 = new ArrayDeque<Instruction>(queue2s);
-		numFetch = nf;
+		
+	}
+	
+	public boolean isEmpty()
+	{
+		return queue2.isEmpty();
 	}
 	
 	public void update() //move nf instructions to queue2
 	{
-		int counter = 0;
-		while(queue2.size() <= queue2size && counter < numFetch)
+		while(super.canOperate() && queue2.size()!=queue2size)
 		{
-			queue2.add(loadQueue.poll());
-			counter++;
+			if(currNum >= loadQueue.size())
+				return;
+			super.doOneOperation();
+			queue2.add(loadQueue.get(currNum));
+			currNum++;
 		}
 	}
 	
-	public Instruction pop()
+	public Instruction get()
 	{
-		return queue2.poll();
+		return queue2.peek();
+	}
+	
+	public void remove()
+	{
+		queue2.poll();
+	}
+	
+	public void setPointer(int x)
+	{
+		currNum = x;
 	}
 	
 	public HashMap<Integer,Double> loadData(String filename) throws FileNotFoundException //Fill up the queue with all of the instructions and return the memory with data in a HashMap
 	{
+		
 		HashMap<Integer,Double> memory = new HashMap<Integer,Double>();
 		labels = new HashMap<String,Integer>();
 		Scanner input = new Scanner(new File(filename));
 		int counter = 0;
 		while(input.hasNextLine()) //Instruction information loading, not data loading!
 		{
-
-			System.out.println(counter);
 			//Need to pre edit the input, go until there's white space and isolate the part of the string after the whitespace
 			//Then trim this second part of the string, and reinsert it into the whole String and then leave the rest of the code as is
 
 			String y = input.nextLine();
-			y.replaceAll("\\s+", " ");
+			
+			
+			while(y.indexOf("\t") != -1)
+			{
+				int asd = y.indexOf("\t");
+				String temp = y;
+				String newy;
+				if(asd==0)
+				{
+					newy = temp.substring(asd+1,temp.length());
+				}
+				else
+				{
+					newy = temp.substring(0,asd) + " " + temp.substring(asd+1,temp.length());
+				}
+				y = newy;
+				System.out.println(y);
+			}	
+			y.replaceAll("\\s", " ").trim();
+			for(int i = 0; i < y.length()-1;i++)
+			{
+				if(y.charAt(i) == ' ' && y.charAt(i+1)== ' ')
+				{
+					System.out.println(i);
+					y = y.substring(0,i+1) + y.substring(i+2,y.length());
+				}
+			}
 			int whiteLocation = 0;
 			for(int i = 0; i < y.length(); i++)
 			{
@@ -67,7 +112,7 @@ public class instructionFetch
 				y = y1 + " " + y2;
 			}
 			//PRE-EDITING DONE!
-			String line = y; 
+			String line = y;
 			String[] lineSplit = line.split(" ");
 			if(lineSplit.length < 3 && lineSplit.length > 1) //No Label for this instruction and not on data segment yet
 			{
@@ -77,33 +122,71 @@ public class instructionFetch
 					String [] operands = lineSplit[1].split(",");
 					if(operands.length == 2)
 					{
-						curr = new Instruction(counter,operands[0],null,operands[1],lineSplit[0],true);
+						curr = new Instruction(lineSplit[0],new Register<Integer>(operands[0]),null,0);
+						curr.setLabel(operands[1]);
 					}
 					else //BEQ BNEQ
 					{
-						 curr = new Instruction(counter,operands[0],operands[1],operands[2],lineSplit[0],true);
+						 curr = new Instruction(lineSplit[0],new Register<Integer>(operands[0]),new Register<Integer>(operands[1]),0);
+						 curr.setLabel(operands[2]);
 					}
-					counter++;
-					instructionStorage.add(curr);
+					//instructionStorage.add(curr);
 					loadQueue.add(curr);
 				}
 				else
 				{
+					Instruction curr = null;
 					String [] operands = lineSplit[1].split(",");
 					if(operands.length == 2) // only one operand and one destination
 					{
-						Instruction curr = new Instruction(counter,operands[1],null,operands[0],lineSplit[0],false);
+						int loc = 0;
+						String xx = operands[1]; //Will be 200(R3)
+						for(int i = 0; i < xx.length();i++)
+						{
+							if(xx.charAt(i) == '(')
+							{
+								loc = i;
+							}
+						}
+						String num = xx.substring(0,loc); //immediate
+						String yy = xx.substring(loc+1,xx.length()-1); //Has the register
+						if(yy.charAt(0) == 'R')
+							curr = new Instruction(lineSplit[0],new Register<Integer>(operands[0]),new Register<Integer>(yy),Integer.parseInt(num));
+						else
+							curr = new Instruction(lineSplit[0],new Register<Double>(operands[0]),new Register<Integer>(yy),Integer.parseInt(num));
 						//order is counter,operand1,operand2,dest,opcode
-						instructionStorage.add(curr);
+						//instructionStorage.add(curr);
 						loadQueue.add(curr);
-						counter++;
 					}
 					else
 					{
-						Instruction curr = new Instruction(counter,operands[2],operands[1],operands[0],lineSplit[0],false);
-						instructionStorage.add(curr);
-						loadQueue.add(curr);
-						counter++;
+						if(operands[0].charAt(0) == 'R') //Integer Registers
+						{
+							if(operands[2].charAt(0) == 'R') // no Immediate
+							{
+								curr = new Instruction(lineSplit[0],new Register<Integer>(operands[0]),new Register<Integer>(operands[1]),new Register<Integer>(operands[2]));
+							}
+							else //there is an immediate
+							{
+								curr = new Instruction(lineSplit[0],new Register<Integer>(operands[0]),new Register<Integer>(operands[1]),Integer.parseInt(operands[2]));
+							}
+							//instructionStorage.add(curr);
+							loadQueue.add(curr);
+						}
+						else //F register, check for immediate
+						{
+							if(operands[2].charAt(0) == 'F') //No Floating point instructions with immediates
+							{
+								curr= new Instruction(lineSplit[0],new Register<Double>(operands[0]),new Register<Double>(operands[1]),new Register<Double>(operands[2]));
+							}
+							else
+							{
+								System.out.println("error");
+								return null;
+							}
+							//instructionStorage.add(curr);
+							loadQueue.add(curr);
+						}
 					}
 				}
 			}
@@ -112,31 +195,85 @@ public class instructionFetch
 				String currLabel = lineSplit[0];
 				currLabel = currLabel.substring(0,currLabel.length()-1); //remove the colon CHECK IF THIS WORKS
 				labels.put(currLabel,counter);
-				
-				
-				String [] operands = lineSplit[2].split(",");
-				if(operands.length == 2) // only one operand and one destination
+				if(lineSplit[1].equals("BNEZ") || lineSplit[0].equals("BEZ") || lineSplit[0].equals("BEQ") || lineSplit[0].equals("BNE"))
 				{
-					Instruction curr = new Instruction(counter,operands[1],null,operands[0],lineSplit[1],false);
-					//order is counter,operand1,operand2,dest,opcode
-					instructionStorage.add(curr);
+					Instruction curr = null;
+					String [] operands = lineSplit[2].split(",");
+					if(operands.length == 2)
+					{
+						curr = new Instruction(lineSplit[1],new Register<Integer>(operands[0]),null,0);
+						curr.setLabel(operands[1]);
+					}
+					else //BEQ BNEQ
+					{
+						 curr = new Instruction(lineSplit[1],new Register<Integer>(operands[0]),new Register<Integer>(operands[1]),0);
+						 curr.setLabel(operands[2]);
+					}
+					//instructionStorage.add(curr);
 					loadQueue.add(curr);
-					counter++;
 				}
 				else
 				{
-					Instruction curr = new Instruction(counter,operands[2],operands[1],operands[0],lineSplit[1],false);
-					instructionStorage.add(curr);
-					loadQueue.add(curr);
-					counter++;
-					
+					Instruction curr = null;
+					String [] operands = lineSplit[2].split(",");
+					if(operands.length == 2) // only one operand and one destination
+					{
+						int loc = 0;
+						String xx = operands[1]; //Will be 200(R3)
+						for(int i = 0; i < xx.length();i++)
+						{
+							if(xx.charAt(i) == '(')
+							{
+								loc = i;
+							}
+						}
+						String num = xx.substring(0,loc); //immediate
+						String yy = xx.substring(loc+1,xx.length()-1); //Has the register
+						if(yy.charAt(0) == 'R')
+							curr = new Instruction(lineSplit[1],new Register<Integer>(operands[0]),new Register<Integer>(yy),Integer.parseInt(num));
+						else
+							curr = new Instruction(lineSplit[1],new Register<Double>(operands[0]),new Register<Integer>(yy),Integer.parseInt(num));
+						//order is counter,operand1,operand2,dest,opcode
+						//instructionStorage.add(curr);
+						loadQueue.add(curr);
+					}
+					else
+					{
+						if(operands[0].charAt(0) == 'R') //Integer Registers
+						{
+							if(operands[2].charAt(0) == 'R') // no Immediate
+							{
+								curr = new Instruction(lineSplit[1],new Register<Integer>(operands[0]),new Register<Integer>(operands[1]),new Register<Integer>(operands[2]));
+							}
+							else //there is an immediate
+							{
+								curr = new Instruction(lineSplit[1],new Register<Integer>(operands[0]),new Register<Integer>(operands[1]),Integer.parseInt(operands[2]));
+							}
+							//instructionStorage.add(curr);
+							loadQueue.add(curr);
+						}
+						else //F register, check for immediate
+						{
+							if(operands[2].charAt(0) == 'F') //No Floating point instructions with immediates
+							{
+								curr= new Instruction(lineSplit[1],new Register<Double>(operands[0]),new Register<Double>(operands[1]),new Register<Double>(operands[2]));
+							}
+							else
+							{
+								System.out.println("error");
+								return null;
+							}
+							//instructionStorage.add(curr);
+							loadQueue.add(curr);
+						}
+					}
 				}
-				
 			}
 			else if(lineSplit[0].equals("DATA") || lineSplit[0].equals("Data") || lineSplit[0].equals("data"))
 				break;
 			else
 				continue;
+			counter++;
 		}
 		
 		while(input.hasNextLine())
@@ -145,8 +282,6 @@ public class instructionFetch
 			String [] stuff = line.split("=");
 			//stuff[0] is Mem(200) stuff[1] is value
 			double thisValue = Double.parseDouble(stuff[1].trim());
-			System.out.println(line);
-			System.out.println(thisValue);
 			String x = stuff[0];
 			int loc1 = 0;
 			int loc2 = 0;
@@ -166,7 +301,7 @@ public class instructionFetch
 		//Now, we need to load the data in!
 		
 		System.out.println("These are the instructions!");
-		System.out.println(instructionStorage);
+		System.out.println(loadQueue);
 		System.out.println("\n\n\n\n\n\n\n");
 		System.out.println("Here is the data!");
 		System.out.println(memory);
@@ -175,11 +310,6 @@ public class instructionFetch
 		
 		
 		return memory;
-	}
-	
-	public void moveToLoading(int number) //When a branch is taken, move the instructions following the branch to the loading queue
-	{
-		
 	}
 }
 	
