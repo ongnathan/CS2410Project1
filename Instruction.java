@@ -1,36 +1,74 @@
-import java.util.*;
-
+package basicUnits.instruction;
+import basicUnits.register.Register;
 public class Instruction
 {
-	public int instructionNum; //Holds the order of the instruction
-	public int cycleTime;
-	public String operandOne; //will be stored as "R" or "F" and then a number representing the String 
-	public String operandTwo; //Could be immediate value too or register with offset
-	public String destination;
-	public String op; //Stores the actual operation like "add"
-	public boolean isBranch;
+	private static int instructionCounter = 0;
+	public final int instructionNum; //Holds the order of the instruction
+	public final Register<? extends Number> operandOne; //will be stored as "R" or "F" and then a number representing the String 
+	public final Register<? extends Number> operandTwo; //Could be immediate value too or register with offset
+	public final Register<? extends Number> destination;
+	public final InstructionType instructionType; //Stores the actual operation like "add"
+	public final int immediate;
+	public String branchLabel;
+	public boolean hasMoved;
 	
-	
-	public Instruction(int num, String reg1,String reg2,String dest, String code,boolean branch)
+	/**
+	 * R-Type
+	 * @param instructionName
+	 * @param destination
+	 * @param operandOne
+	 * @param operandTwo
+	 * @param cycleTime
+	 */
+	public Instruction(String instructionName, Register<? extends Number> destination, Register<? extends Number> operandOne, Register<? extends Number> operandTwo)
 	{
-		isBranch = branch;
-		instructionNum = num;
-		operandOne = reg1;
-		operandTwo = reg2;
-		destination = dest;
-		op = code;
+		this(decodeInstructionFromString(instructionName),destination,operandOne,operandTwo,Integer.MIN_VALUE);
+	}
+	
+	/**
+	 * I-Type
+	 * @param instructionName
+	 * @param destination
+	 * @param operandOne
+	 * @param immediate
+	 * @param cycleTime
+	 */
+	public Instruction(String instructionName, Register<? extends Number> destination, Register<? extends Number> operandOne, int immediate)
+	{
+		this(decodeInstructionFromString(instructionName),destination,operandOne,null,immediate);
+	}
+	
+	private Instruction(InstructionType instruction, Register<? extends Number> destination, Register<? extends Number> operandOne, Register<? extends Number> operandTwo, int immediate)
+	{
+		this.hasMoved = false;
+		this.instructionNum = instructionCounter;
+		instructionCounter++;
+		
+		this.instructionType = instruction;
+		this.destination = destination;
+		this.operandOne = operandOne;
+		this.operandTwo = operandTwo;
+		this.immediate = immediate;
+	}
+	
+	public static InstructionType decodeInstructionFromString(String type)
+	{
+		type = type.replace(".", "P");
+		return InstructionType.valueOf(type);
+	}
+	
+	public void setLabel(String branch)
+	{
+		branchLabel = branch;
 	}
 	
 	public String toString()
 	{
 		StringBuilder s = new StringBuilder();
 		s.append("This is instruction number: " + instructionNum + "\n");
-		s.append("The opcode is: " + op + "\n");
+		s.append("The opcode is: " + instructionType.ordinal() + "\n");
 		s.append("The operands are: " + destination + ", " + operandOne + ", " + operandTwo + "\n");
+		s.append("The immediate value is: " + immediate + "\n");
 		return s.toString();
-	
 	}
 }
-	
-	
-	
