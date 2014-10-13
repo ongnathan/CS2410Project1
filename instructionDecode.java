@@ -1,9 +1,12 @@
+import basicUnits.instruction.Instruction;
+import basicUnits.ClockDependentUnit;
+import java.util.*;
 public class instructionDecode extends ClockDependentUnit
 {
 	int ni; //queue length 
 	//Can have nd instructions ready to be issued
-	Queue <Instruction> queue //for storing instructions before issuing them
-	int nw // instructions issued per cycle (external to this class possibly)
+	Queue <Instruction> queue; //for storing instructions before issuing them
+	int nw; // instructions issued per cycle (external to this class possibly)
 	
 	public instructionDecode(int numDecoded, int queueLength) 
 	{
@@ -11,7 +14,11 @@ public class instructionDecode extends ClockDependentUnit
 		queue = new ArrayDeque<Instruction>(ni);
 		ni = queueLength;
 	}
-	
+	public void reset()
+	{
+		for (Instruction i : queue)
+			i.hasMoved = false;
+	}
 	public Instruction issue()
 	{
 		return queue.poll();
@@ -22,8 +29,9 @@ public class instructionDecode extends ClockDependentUnit
 	}
 	public boolean add(Instruction i)
 	{
-		if(!queue.size()==ni && !super.doOneOperation())
+		if(!(queue.size()==ni) && super.doOneOperation() && i.hasMoved == false)
 		{
+			i.hasMoved = true;
 			queue.add(i);
 			return true;
 		}
@@ -32,5 +40,14 @@ public class instructionDecode extends ClockDependentUnit
 			return false;
 		}
 			
+	}
+	public boolean isEmpty()
+	{
+		return queue.isEmpty();
+	}
+	public String toString()
+	{
+		String s = "The decoder queue contains " + queue;
+		return s;
 	}
 }
