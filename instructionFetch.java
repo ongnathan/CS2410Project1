@@ -21,12 +21,20 @@ public class instructionFetch extends ClockDependentUnit
 		queue2 = new ArrayDeque<Instruction>(queue2s);
 		
 	}
-	
+	public String toString()
+	{
+		String s ="The current queue contains " + queue2;
+		return s;
+	}
 	public boolean isEmpty()
 	{
 		return queue2.isEmpty();
 	}
-	
+	public void reset()
+	{
+		for(Instruction a: queue2)
+			a.hasMoved = false;
+	}
 	public void update() //move nf instructions to queue2
 	{
 		while(super.canOperate() && queue2.size()!=queue2size)
@@ -34,6 +42,7 @@ public class instructionFetch extends ClockDependentUnit
 			if(currNum >= loadQueue.size())
 				return;
 			super.doOneOperation();
+			loadQueue.get(currNum).hasMoved = true;
 			queue2.add(loadQueue.get(currNum));
 			currNum++;
 		}
@@ -299,14 +308,6 @@ public class instructionFetch extends ClockDependentUnit
 		}
 		
 		//Now, we need to load the data in!
-		
-		System.out.println("These are the instructions!");
-		System.out.println(loadQueue);
-		System.out.println("\n\n\n\n\n\n\n");
-		System.out.println("Here is the data!");
-		System.out.println(memory);
-		System.out.println("\n\n\n\n\n" + "And here are the labels");
-		System.out.println(labels);
 		
 		
 		return memory;
