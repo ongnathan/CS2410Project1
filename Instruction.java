@@ -10,6 +10,8 @@ public class Instruction
 	public final InstructionType instructionType; //Stores the actual operation like "add"
 	public final int immediate;
 	public String branchLabel;
+	private boolean isReadyOne;
+	private boolean isReadyTwo;// Is the instruction ready to be executed?
 	//public boolean hasMoved;
 	
 	/**
@@ -40,7 +42,8 @@ public class Instruction
 	
 	private Instruction(InstructionType instruction, Register<? extends Number> destination, Register<? extends Number> operandOne, Register<? extends Number> operandTwo, int immediate)
 	{
-		//this.hasMoved = false;
+		this.isReadyOne = false;
+		this.isReadyTwo = false;
 		this.instructionNum = instructionCounter;
 		instructionCounter++;
 		
@@ -50,7 +53,31 @@ public class Instruction
 		this.operandTwo = operandTwo;
 		this.immediate = immediate;
 	}
+	public void setOpOne(Integer value)//still not working...
+	{
+		operandOne.setValue(value);
+		this.isReadyOne = true;
+	}
+	public void setOpOne(Double value) //still not working...
+	{
+		operandOne.setValue(value);
+		this.isReadyOne = true;
+	}
+	public void setOpTwo(Integer value)//still not working...
+	{
+		operandTwo.setValue(value);
+		this.isReadyTwo = true;
+	}
+	public void setOpTwo(Double value)//still not working...
+	{
+		operandTwo.setValue(value);
+		this.isReadyTwo = true;
+	}
 	
+	public boolean isReady()
+	{
+		return isReadyOne && isReadyTwo;
+	}
 	public static InstructionType decodeInstructionFromString(String type)
 	{
 		type = type.replace(".", "P");
