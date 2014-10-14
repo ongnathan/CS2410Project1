@@ -12,6 +12,7 @@ public class Register<T extends Number> extends ClockDependentUnit
 	{
 		super(Integer.MAX_VALUE);
 		this.name = name;
+		this.value = value;
 	}
 	
 	public T getValue()
@@ -28,5 +29,17 @@ public class Register<T extends Number> extends ClockDependentUnit
 	public String toString()
 	{
 		return this.name + " = " + this.value.toString();
+	}
+	
+	public static void main(String[] args)
+	{
+		Register<Integer> r = new Register<Integer>(10, "R1");
+		System.out.println(r.getValue());
+		r.setValue(20);
+		System.out.println(r.getValue());
+		Register<Integer> r2 = new Register<Integer>(100, "R2");
+		System.out.println(r2.getValue());
+		r.setValue(r2.getValue());
+		System.out.println(r.getValue());
 	}
 }
