@@ -11,6 +11,7 @@ public class ReservationStation extends ClockDependentUnit
 	private final int maxInstructionsInQueue;
 	private final Queue<Instruction> instructionQueue;
 	private final Queue<Instruction> inPipeline;
+	private final Instruction[] mapping;
 
 	public ReservationStation(int maxInstructionsInQueue)
 	{
@@ -18,6 +19,7 @@ public class ReservationStation extends ClockDependentUnit
 		this.maxInstructionsInQueue = maxInstructionsInQueue;
 		this.instructionQueue = new LinkedList<Instruction>();
 		this.inPipeline = new LinkedList<Instruction>();
+		this.mapping = new Instruction[this.maxInstructionsInQueue];
 	}
 	
 	public boolean addInstruction(Instruction i)
@@ -27,7 +29,27 @@ public class ReservationStation extends ClockDependentUnit
 			return false;
 		}
 		this.instructionQueue.add(i);
+		for(int j = 0; j < this.maxInstructionsInQueue; j++)
+		{
+			if(this.mapping[j] == null)
+			{
+				this.mapping[j] = i;
+				break;
+			}
+		}
 		return true;
+	}
+	
+	public int getReservationNumber(Instruction i)
+	{
+		for(int j = 0; j < this.maxInstructionsInQueue; j++)
+		{
+			if(this.mapping[j] == i)
+			{
+				return j;
+			}
+		}
+		return -1;
 	}
 	
 	public Instruction getInstruction()
@@ -48,7 +70,15 @@ public class ReservationStation extends ClockDependentUnit
 	
 	public Instruction removeInstruction()
 	{
-		return this.inPipeline.poll();
+		Instruction i = this.inPipeline.poll();
+		for(int j = 0; j < this.maxInstructionsInQueue; j++)
+		{
+			if(this.mapping[j] == i)
+			{
+				this.mapping[j] = null;
+			}
+		}
+		return i;
 	}
 	
 //	public void newClockCycle()
