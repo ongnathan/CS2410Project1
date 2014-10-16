@@ -5,7 +5,19 @@ import basicUnits.instruction.Instruction;
 import basicUnits.register.Register;
 import operations.*;
 import reservationStation.ReservationStation;
+//TODO 
+//NEED SPECIAL CASES FOR BRANCH 
+//FOR BRANCH DO DIFFERENT THINGS BASED ON PREDICTION, IF WE'RE PREDICTING THEN WHENEVER SET CURR INSTRUCTION TO PREDICTED LOCATION BUT REMEMBER THE LOCATION THAT WE SHOULD HAVE GONE TO 
+//IF INCORRECT
+//AT ROB TIME WE FIND OUT IF WE WERE INCORRECT OR NOT
+//BRANCHES:
+/*Predict as taken-> stall prior to branch, then wait for address calculation
+predict not taken-> continue running as normal
+if wrong-> kill everything in every object prior to Branch
+if right-> keep on chugging
+if no prediction-> stall everything before it until the branch has been committed and then set pointer to proper instruction and then continue
 
+*/
 public class simulator
 {
 	public static int nf; //# of fetched instructions per cycle
@@ -47,8 +59,10 @@ public class simulator
 	1. Renaming Register in the form "RR1, RR2, etc. OR RF1, RF2, etc. *-> renaming register
 	2. Reservation Station in the form "!I1, !I2, *M1, *M2, etc.  ! -> reservation station
 	*/
-	public static HashMap<String,ArrayList<Instruction>> needResult; 
-	//Maps Register Name to which instruction needs it
+	//public static HashMap<String,ArrayList<Instruction>> needResult; 
+	//Changing ^ to v is in progress!!!!
+	public static HashMap<Instruction,ArrayList<Instruction>> needResult; 
+	//Maps Instruction that has result to which instruction need it
 	
 	public static HashMap<Instruction,Integer> renameMap;
 	//Maps instruction to which renaming register has it 
@@ -57,6 +71,7 @@ public class simulator
 	public static HashMap<Instruction,Integer> memLocations;
 	//Maps location of instruction accessing memory, with the location that it wants to access
 	//All of the operationalUnits!!
+	public static HashMap<Instruction,Integer> branchResult;
 	public static OperationalUnit Iunit;
 	public static OperationalUnit Bunit;
 	public static OperationalUnit Dunit;
@@ -64,8 +79,12 @@ public class simulator
 	public static OperationalUnit Munit;
 	public static OperationalUnit Funit;
 	
+	public static ReorderBuffer ROB;
+	public static dataCache cache;
 	/*NEED TO UPDATE ALL OF THESE METHODS WITH THE REST OF THE OBJECTS
 	*/
+	
+
 	public static void resetClocks()
 	{
 		fetch.newClockCycle();
@@ -78,20 +97,64 @@ public class simulator
 		Lunit.newClockCycle();
 		Munit.newClockCycle();
 		Funit.newClockCycle();
-		
+		cache.newClockCycle();
+	}
+	public static void clear() //This method should be called if a branch was incorrectly predicted to wipe out all objects except the fetch unit and then start over!
+	{
+	//TOOOOOOOODOOOOOOOOOOOOOOO
 	}
 	public static boolean everythingIsEmpty()
 	{
-		if(fetch.isEmpty() && decoder.isEmpty()) //need to add the rest of the objects just the reorder buffer
+		if(fetch.isEmpty() && decoder.isEmpty()) //Just need to add ROB and we're done!
 		{
 			for (int i = 0; i < 6; i++)
 			{
 				if(!stations[i].isEmpty())
 					return false;
 			}
+			for (int i = 0; i < intRenaming; i++)
+			{
+				if(Ir[i] == true)
+					return false;
+			}
+			for (int i =0; i < floatRenaming; i++)
+			{
+				if(Fr[i] == true)
+					return false;
+			}
 			return true;
 		}
 		return false;
+	}
+	public static void clearAll(int curr) //Clear everything if incorrect prediction! and pass in the next instruction location
+	{
+		for(int i = 0 ;i < stations.length;i++)
+			stations[i].clear();
+		ROB.clear();
+		cache.clear();
+		fetch.clear(curr);
+		decoder.clear();
+		Iunit.clear();
+		Bunit.clear();
+		Dunit.clear();
+		Lunit.clear();
+		Munit.clear();
+		Funit.clear();
+		regLocations.clear();
+		needResult.clear();
+		mapLocations.clear();
+		renameMap.clear();
+		for(int i = 0; i < Irenaming.length;i++)
+		{
+			Irenaming[i] = 0;
+			Ir[i] = false;
+		}
+		for(int i = 0; i <Frenaming.length;i++)
+		{
+			Frenaming[i] = 0.0;
+			Fr[i] = false;
+		}
+		
 	}
 	public static void updateExecution()
 	{
@@ -101,6 +164,145 @@ public class simulator
 		Lunit.prepInstructionForPipeline();
 		Munit.prepInstructionForPipeline();
 		Funit.prepInstructionForPipeline();
+	}
+	public static void commitInstructions()
+	{
+		for(int j = 0; j < renameToActual; j++)
+		{
+			Instruction curr = ROB.get();
+			if(curr!=null)
+			{
+				if(curr.instructionType.ordinal() == 11 || curr.instructionType.ordinal() == 13) //Store instruction put the instruction into the cache and don't remove it until it's ready
+				{
+					if(curr == cache.get())
+					{
+						Instruction i = cache.remove();
+						if(i != null) //Then the instruction was ready so we can store the data into memory!
+						{
+							int x = memLocations.get(i); //Effective Address
+							memLocations.remove(i);
+							memory.put(Integer.valueOf(x),curr.operandTwo.getValue().doubleValue());
+							ROB.remove();
+						}
+					}
+					else
+					{
+						cache.add(curr);
+					}
+				}
+				else if(curr.instructionType.isLOAD())//Load instruction same thing as store with the cache
+				{ 
+					if(curr == cache.get())
+					{
+						Instruction i = cache.remove();
+						if(i!=null)
+						{
+							int y = memLocations.get(i);
+							memLocations.remove(i);
+							double d = memory.get(Integer.valueOf(y));//result of the load
+							String x = i.destination.getName(); //Should return R1, F3 etc.
+							if(x.startsWith("R")) //Integer value / register
+							{
+								String regNum = x.substring(1,x.length());
+								int regNumber = Integer.parseInt(regNum);
+								intRegisters[regNumber] = (int) d;
+								ArrayList<Instruction> results = needResult.get(i);
+								for(Instruction inst: results) //Give the instruction the result it needs
+								{
+									if(inst.operandOne.getName().equals(x))
+									{
+										int dd = (int) d;
+										inst.setOpOne(Integer.valueOf(dd));
+									}
+									if(inst.operandTwo != null && inst.operandTwo.getName().equals(x))
+									{
+										int dd = (int) d;
+										inst.setOpTwo(Integer.valueOf(dd));
+									}
+								}
+								needResult.remove(i);
+							}
+							else
+							{
+								String regNum = x.substring(1,x.length());
+								int regNumber = Integer.parseInt(regNum);
+								floatRegisters[regNumber] = d;
+								ArrayList<Instruction> results = needResult.get(i);
+								for(Instruction inst: results)
+								{
+									if(inst.operandOne.getName().equals(x))
+										inst.setOpOne(Double.valueOf(d));
+									if(inst.operandTwo !=null && inst.operandTwo.getName().equals(x))
+										inst.setOpTwo(Double.valueOf(d));
+								}
+								needResult.remove(i);
+								regLocations.remove(x);
+							}
+							ROB.remove();
+						}
+					}
+					else
+					{
+						cache.add(curr);
+					}
+					
+				}
+				else if(curr.instructionType.isFloatingPointOperation()) //Just write the data from the renaming register corresponding to the destination and free up the renaming reg
+				{
+					int renameIndex = renameMap.get(curr);
+					renameMap.remove(curr);
+					double value = Frenaming[renameIndex];
+					System.out.println(curr + "\n\n" + value + "\n\n");
+					Fr[renameIndex] = false; //free up the renaming register
+					Frenaming[renameIndex] = 0.0;
+					String x = curr.destination.getName();
+					ArrayList<Instruction> result = needResult.get(curr);
+					if(result!=null)
+					{
+						for(Instruction inst: result)
+						{
+							if(inst.operandOne.getName().equals(x))
+								inst.setOpOne(Double.valueOf(value));
+							if(inst.operandTwo!=null && inst.operandTwo.getName().equals(x))
+								inst.setOpTwo(Double.valueOf(value));
+						}
+					}
+					needResult.remove(curr);
+					regLocations.remove(x);
+					int regIndex = Integer.parseInt(x.substring(1,x.length()));
+					floatRegisters[regIndex] = value;
+					ROB.remove();
+				}
+				else if(curr.instructionType.isINT1()) //Just write the data from the renaming integer register to the destination
+				{
+					int renameIndex = renameMap.get(curr);
+					renameMap.remove(curr);
+					int value = Irenaming[renameIndex];
+					Ir[renameIndex] = false; //free up the renaming register
+					Irenaming[renameIndex] = 0;
+					String x = curr.destination.getName();
+					ArrayList<Instruction> result = needResult.get(curr);
+					if(result != null)
+					{
+						for(Instruction inst: result)
+						{
+							if(inst.operandOne.getName().equals(x))
+								inst.setOpOne(Integer.valueOf(value));
+							if(inst.operandTwo!=null && inst.operandTwo.getName().equals(x))
+								inst.setOpTwo(Integer.valueOf(value));
+						}
+					}
+					needResult.remove(curr);
+					regLocations.remove(x);
+					int regIndex = Integer.parseInt(x.substring(1,x.length()));
+					intRegisters[regIndex] = value;
+					ROB.remove();				
+				}
+				else if(curr.instructionType.isBranch()) //TO DO Need to handle a few cases here based on branch prediction and result of branch
+				{
+				}
+			}
+		}
 	}
 	public static void computeResults()
 	{ 
@@ -120,13 +322,17 @@ public class simulator
 					if(Fr[j] == false)
 						fFound = j;
 				}
-			
-			if(Bunit.isOutputReady() && ! used[0])
+			if(Bunit.isOutputReady() && ! used[0] && ROB.isSpace())
 			{
 				used[0] = true;
 				curr = Bunit.getOutputInstruction();
+				int k = Bunit.getOutput().intValue();
+				branchResult.put(curr,k);
+				ROB.add(curr);
+				
+				
 			}
-			if(Iunit.isOutputReady() && iFound != -1 && !used[1])
+			if(Iunit.isOutputReady() && iFound != -1 && !used[1] && ROB.isSpace())
 			{
 				used[1] = true;
 				curr = Iunit.getOutputInstruction();
@@ -134,9 +340,9 @@ public class simulator
 				int resNumber = stations[0].getReservationNumber(curr);
 				stations[0].removeInstruction();
 				String x = "!I" + resNumber;
-				if(needResult.get(curr.destination.getName()) != null)
+				if(needResult.get(curr) != null)
 				{
-					ArrayList<Instruction> result = needResult.get(curr.destination.getName());
+					ArrayList<Instruction> result = needResult.get(curr);
 					for(Instruction j :result)
 					{
 						if(j.operandOne.getName().equals(curr.destination.getName()))
@@ -144,47 +350,46 @@ public class simulator
 						else if(j.operandTwo.getName().equals(curr.destination.getName()))
 							j.setOpTwo(Integer.valueOf(k));
 					}
-					needResult.remove(curr.destination.getName());
+					needResult.remove(curr);
 				}
 				regLocations.remove(curr.destination.getName());
 				Ir[iFound] = true;
 				Irenaming[iFound] = k;
 				regLocations.put(curr.destination.getName(),"RR" + iFound);
-				//Need to put instruction in ROB
 				renameMap.put(curr,iFound);
+				ROB.add(curr);
 			}
-			else if(Munit.isOutputReady() && fFound != -1 && !used[2])
+			else if(Munit.isOutputReady() && iFound != -1 && !used[2] && ROB.isSpace())
 			{
 				used[2] = true;
 				curr = Munit.getOutputInstruction();
-				double k = Munit.getOutput().doubleValue();
+				int k = Munit.getOutput().intValue();
 				int resNumber = stations[1].getReservationNumber(curr);
 				stations[1].removeInstruction();
 				String x = "*M" + resNumber;
-				if(needResult.get(curr.destination.getName()) != null)
+				if(needResult.get(curr) != null)
 				{
-					ArrayList<Instruction> result = needResult.get(curr.destination.getName());
+					ArrayList<Instruction> result = needResult.get(curr);
 					for(Instruction j :result)
 					{
 						if(j.operandOne.getName().equals(curr.destination.getName()))
-							j.setOpOne(Double.valueOf(k));
+							j.setOpOne(Integer.valueOf(k));
 						else if(j.operandTwo.getName().equals(curr.destination.getName()))
-							j.setOpTwo(Double.valueOf(k));
+							j.setOpTwo(Integer.valueOf(k));
 					}
-					needResult.remove(curr.destination.getName());
+					needResult.remove(curr);
 				}
 				regLocations.remove(curr.destination.getName());
-				Fr[fFound] = true;
-				Frenaming[fFound] = k;
-				regLocations.put(curr.destination.getName(),"RF" + fFound);
-				//Need to put instruction in ROB
-				renameMap.put(curr,fFound);
+				Ir[fFound] = true;
+				Irenaming[iFound] = k;
+				regLocations.put(curr.destination.getName(),"RR" + iFound);
+				renameMap.put(curr,iFound);
+				ROB.add(curr);
 			}
-			else if(Lunit.isOutputReady() && iFound != -1 && !used[3])
+			else if(Lunit.isOutputReady() && iFound != -1 && !used[3] && ROB.isSpace())
 			{
 				used[3] = true;
 				curr = Lunit.getOutputInstruction();
-				System.out.println(Lunit.getOutput()+"\n\n");
 				int k = Lunit.getOutput().intValue();
 				int resNumber = stations[2].getReservationNumber(curr);
 				stations[2].removeInstruction();
@@ -202,21 +407,25 @@ public class simulator
 					}
 					needResult.remove(curr.destination.getName());
 				}*/
-				regLocations.remove(curr.destination.getName());
-				regLocations.put(curr.destination.getName(),"memory");
-				//Need to put instruction in ROB
+				if(curr.instructionType.ordinal() != 11 && curr.instructionType.ordinal()!= 13) // Load Instruction
+				{
+					regLocations.remove(curr.destination.getName());
+					regLocations.put(curr.destination.getName(),"memory" + curr.instructionNum);
+				}
+				ROB.add(curr);
 			}
-			else if(Funit.isOutputReady() && fFound == -1 && ! used[4])
+			else if(Funit.isOutputReady() && fFound != -1 && ! used[4]&& ROB.isSpace())
 			{
 				used[4] = true;
 				curr = Funit.getOutputInstruction();
+				System.out.println("here");
 				double k = Funit.getOutput().doubleValue();
 				int resNumber = stations[3].getReservationNumber(curr);
 				stations[3].removeInstruction();
 				String x = "*F" + resNumber;
-				if(needResult.get(curr.destination.getName()) != null)
+				if(needResult.get(curr) != null)
 				{
-					ArrayList<Instruction> result = needResult.get(curr.destination.getName());
+					ArrayList<Instruction> result = needResult.get(curr);
 					for(Instruction j :result)
 					{
 						if(j.operandOne.getName().equals(curr.destination.getName()))
@@ -224,16 +433,17 @@ public class simulator
 						else if(j.operandTwo.getName().equals(curr.destination.getName()))
 							j.setOpTwo(Double.valueOf(k));
 					}
-					needResult.remove(curr.destination.getName());
+					needResult.remove(curr);
 				}
 				regLocations.remove(curr.destination.getName());
 				Fr[fFound] = true;
 				Frenaming[fFound] = k;
 				regLocations.put(curr.destination.getName(),"RF" + fFound);
-				//Need to put instruction in ROB
+				System.out.println(curr);
+				ROB.add(curr);
 				renameMap.put(curr,fFound);				
 			}
-			else if(Dunit.isOutputReady() && fFound == -1 && !used[5])
+			else if(Dunit.isOutputReady() && fFound == -1 && !used[5] && ROB.isSpace())
 			{
 				used[5] = true;
 				curr = Dunit.getOutputInstruction();
@@ -241,9 +451,9 @@ public class simulator
 				int resNumber = stations[4].getReservationNumber(curr);
 				stations[4].removeInstruction();
 				String x = "*D" + resNumber;
-				if(needResult.get(curr.destination.getName()) != null)
+				if(needResult.get(curr) != null)
 				{
-					ArrayList<Instruction> result = needResult.get(curr.destination.getName());
+					ArrayList<Instruction> result = needResult.get(curr);
 					for(Instruction j :result)
 					{
 						if(j.operandOne.getName().equals(curr.destination.getName()))
@@ -251,13 +461,13 @@ public class simulator
 						else if(j.operandTwo.getName().equals(curr.destination.getName()))
 							j.setOpTwo(Double.valueOf(k));
 					}
-					needResult.remove(curr.destination.getName());
+					needResult.remove(curr);
 				}
 				regLocations.remove(curr.destination.getName());
 				Fr[fFound] = true;
 				Frenaming[fFound] = k;
 				regLocations.put(curr.destination.getName(),"RF" + fFound);
-				//Need to put instruction in ROB
+				ROB.add(curr);
 				renameMap.put(curr,fFound);
 			}
 			
@@ -269,12 +479,15 @@ public class simulator
 		getCommands(args);
 		//Construct All Objects
 		//******************
-		needResult = new HashMap<String,ArrayList<Instruction>>();
+		ROB = new ReorderBuffer(nr);
+		cache = new dataCache();
+		needResult = new HashMap<Instruction,ArrayList<Instruction>>();
 		intRegisters = new int [32];
 		floatRegisters = new double [32];
 		regLocations = new HashMap<String,String>();
 		renameMap = new HashMap<Instruction,Integer>();
 		memLocations = new HashMap<Instruction,Integer>();
+		branchResult = new HashMap<Instruction,Integer>();
 		Irenaming = new int [intRenaming];
 		Ir = new boolean[intRenaming];
 		Fr = new boolean[floatRenaming];
@@ -303,9 +516,10 @@ public class simulator
 		
 		int counter = 0;
 		//Begin Main Simulation Loop
-		while(counter < 20)
+		while(counter < 28)
 		{
 			resetClocks(); //Start new clock cycles  
+			commitInstructions();
 			computeResults();
 			updateExecution();	//EXECUTE 
 			
@@ -323,6 +537,7 @@ public class simulator
 				{
 					int whichPlace = -1;
 					Instruction curr = null;
+					boolean isStore = false;
 					if(decoder.peek().instructionType.isINT1() && onlyOne[0] == false)
 					{
 						if(stations[0].addInstruction(decoder.peek()))
@@ -330,9 +545,6 @@ public class simulator
 							whichPlace = 0;
 							onlyOne[0] = true;
 							curr = decoder.issue();
-							 //Doing this too early,
-							//If we have ADD R3, R3, R1 Then R3 will be waited for by this instruction (doesn'tm ake sense)
-							//Read the operand values if they are available. If not, know the location of where they are
 						}
 					}
 					else if(decoder.peek().instructionType.isMULT() && onlyOne[1] == false)
@@ -350,6 +562,11 @@ public class simulator
 						{
 							whichPlace = 2;
 							curr = decoder.issue();
+							if(curr.instructionType.ordinal() == 11 || curr.instructionType.ordinal() == 13) // If it is a store, move dest to op 2 for conveninece
+							{
+								isStore = true;
+								curr.operandTwo = curr.destination;
+							}
 							onlyOne[2] = true;
 						}
 					}
@@ -382,7 +599,7 @@ public class simulator
 					}
 					if(curr!=null && curr.operandOne!= null) 
 					{
-						if(regLocations.get(curr.operandOne.getName()) == null)
+						if(regLocations.get(curr.operandOne.getName()) == null) //Simply Read value from the register
 						{
 							if(curr.operandOne.getName().startsWith("R")) //Integer register
 							{
@@ -396,12 +613,25 @@ public class simulator
 						else
 						{
 							String loc = regLocations.get(curr.operandOne.getName());
-							if(loc.equals("memory"))
+							if(loc.startsWith("memory")) //loop through ROB and find the one with this Instruction Num
 							{
+								Instruction ii = ROB.getByInstructionNum(Integer.parseInt(loc.substring(6,loc.length()))); //The number after memory denotes the instructionNum
+								ArrayList<Instruction> b = needResult.get(ii);
+								if(b == null)
+								{
+									b = new ArrayList<Instruction>();
+									b.add(curr);
+									needResult.put(ii,b);
+								}
+								else
+								{
+									b.add(curr);
+									needResult.put(ii,b);
+								}
 							}
 							else if(loc.startsWith("RR") || loc.startsWith("RF")) //Renaming Register Get value from it
 							{
-								if(loc.charAt(i)=='R')
+								if(loc.charAt(1)=='R')
 								{
 									curr.setOpOne(Integer.valueOf(getReValI(loc)));
 								}
@@ -410,24 +640,50 @@ public class simulator
 									curr.setOpOne(Double.valueOf(getReValF(loc)));
 								}
 								
-							}
+							} 	//!I,!M,*L,!L,*F,*D
 							else //value is in a reservation station, so tell the hashmap that you need it
 							{
-								ArrayList<Instruction> now = needResult.get(curr.operandOne.getName());
-								if(now!=null)
+								Instruction x;
+								if(loc.charAt(1)=='I')
 								{
-									now.add(curr);
-									needResult.put(curr.operandOne.getName(),now);
+									x = stations[0].getByMapping(Integer.parseInt(loc.substring(2,loc.length())));
+								}
+								else if(loc.charAt(1)=='M')
+								{
+									x = stations[1].getByMapping(Integer.parseInt(loc.substring(2,loc.length())));
+								}
+								else if(loc.charAt(1) == 'L')
+								{
+									x = stations[2].getByMapping(Integer.parseInt(loc.substring(2,loc.length())));
+								}
+								else if(loc.charAt(1) == 'F')
+								{
+									x = stations[3].getByMapping(Integer.parseInt(loc.substring(2,loc.length())));
+								}
+								else if(loc.charAt(1) =='D')
+								{
+									x = stations[4].getByMapping(Integer.parseInt(loc.substring(2,loc.length())));
 								}
 								else
 								{
-									now = new ArrayList<Instruction>();
-									now.add(curr);
-									needResult.put(curr.operandOne.getName(),now);
+									x = stations[5].getByMapping(Integer.parseInt(loc.substring(2,loc.length())));
 								}
+								if(needResult.get(x)== null)
+								{
+									ArrayList<Instruction>asdf = new ArrayList<Instruction>();
+									asdf.add(curr);
+									needResult.put(x,asdf);
+								}
+								else
+								{
+									ArrayList<Instruction> asdf = needResult.get(x);
+									asdf.add(curr);
+									needResult.put(x,asdf);
+								}
+							
 							}
 						}
-						if(curr.operandTwo!= null)
+						if(curr.operandTwo!= null) //Make sure it isn't a store operation
 						{
 							if(regLocations.get(curr.operandTwo.getName())==null)
 							{
@@ -446,10 +702,23 @@ public class simulator
 							else //Store the location
 							{
 								String loc = regLocations.get(curr.operandTwo.getName());
-								if(loc.equals("memory"))
+								if(loc.startsWith("memory"))
 								{
+									Instruction ii = ROB.getByInstructionNum(Integer.parseInt(loc.substring(6,loc.length()))); //The number after memory denotes the instructionNum
+									ArrayList<Instruction> b = needResult.get(ii);
+									if(b == null)
+									{
+										b = new ArrayList<Instruction>();
+										b.add(curr);
+										needResult.put(ii,b);
+									}
+									else
+									{
+										b.add(curr);
+										needResult.put(ii,b);
+									}								
 								}
-								else if(loc.startsWith("RR") || loc.startsWith("RF")) //Renaming Register Get value from it
+								if(loc.startsWith("RR") || loc.startsWith("RF")) //Renaming Register Get value from it
 								{
 									if(loc.charAt(1)=='R')
 									{
@@ -460,20 +729,46 @@ public class simulator
 										curr.setOpTwo(Double.valueOf(getReValF(loc)));
 									}
 								}
-								else //TODO Hard part, value is in a reservation station
+								else //TODO Hard part, value is in a reservation station, add myself to the list of values that need the result, and tell Hashmap who has the result
 								{
-									ArrayList<Instruction> now = needResult.get(curr.operandTwo.getName());
-									if(now!=null)
+									Instruction x;
+									if(loc.charAt(1)=='I')
 									{
-										now.add(curr);
-										needResult.put(curr.operandTwo.getName(),now);
+										x = stations[0].getByMapping(Integer.parseInt(loc.substring(2,loc.length())));
+									}
+									else if(loc.charAt(1)=='M')
+									{
+										x = stations[1].getByMapping(Integer.parseInt(loc.substring(2,loc.length())));
+									}
+									else if(loc.charAt(1) == 'L')
+									{
+										x = stations[2].getByMapping(Integer.parseInt(loc.substring(2,loc.length())));
+									}
+									else if(loc.charAt(1) == 'F')
+									{
+										x = stations[3].getByMapping(Integer.parseInt(loc.substring(2,loc.length())));
+									}
+									else if(loc.charAt(1) =='D')
+									{
+										x = stations[4].getByMapping(Integer.parseInt(loc.substring(2,loc.length())));
 									}
 									else
 									{
-										now = new ArrayList<Instruction>();
-										now.add(curr);
-										needResult.put(curr.operandTwo.getName(),now);
+										x = stations[5].getByMapping(Integer.parseInt(loc.substring(2,loc.length())));
 									}
+									if(needResult.get(x)== null)
+									{
+										ArrayList<Instruction>asdf = new ArrayList<Instruction>();
+										asdf.add(curr);
+										needResult.put(x,asdf);
+									}
+									else
+									{
+										ArrayList<Instruction> asdf = needResult.get(x);
+										asdf.add(curr);
+										needResult.put(x,asdf);
+									}
+						
 								}
 							}
 						}
@@ -487,8 +782,8 @@ public class simulator
 						if(whichPlace == 0)
 							regLocations.put(curr.destination.getName(),"!I" + stations[0].getReservationNumber(curr));
 						else if(whichPlace == 1)
-							regLocations.put(curr.destination.getName(),"*M" + stations[1].getReservationNumber(curr));
-						else if(whichPlace == 2)
+							regLocations.put(curr.destination.getName(),"!M" + stations[1].getReservationNumber(curr));
+						else if(whichPlace == 2 && !isStore)
 						{
 							if(curr.destination.getName().startsWith("F"))
 								regLocations.put(curr.destination.getName(),"*L"+stations[2].getReservationNumber(curr));
@@ -530,15 +825,20 @@ public class simulator
 			System.out.println("--------------------Reservation Stations-------------\n\n\n");
 				for(int i = 0; i < 6; i++)
 					System.out.println("Reservation Station " + i + " contains " + stations[i]);
-			System.out.println("-----------------Register Locations-----------------\n\n");
+			System.out.println("\n\n-----------------Register Locations-----------------\n\n");
 			System.out.println(regLocations);
-			System.out.println("---------------------Need Result-------------------\n\n");
+			System.out.println("\n\n---------------------Need Result-------------------\n\n");
 			System.out.println(needResult);
-			System.out.println("---------------------------Rename Map--------------------\n\n");
+			System.out.println("\n\n---------------------------Rename Map--------------------\n\n");
 			System.out.println(renameMap);
+			System.out.println("\n\n---------------------------Reorder Buffer------------------\n\n");
+			System.out.println(ROB);
 		}
 		
-		
+		System.out.println("-------------Here are the registers! (Int and then Float)--------------\n\n\n");
+		System.out.println(Arrays.toString(intRegisters));
+		System.out.println(Arrays.toString(floatRegisters));
+		System.out.println(memory);
 		
 		
 	}
