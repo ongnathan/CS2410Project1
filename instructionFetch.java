@@ -21,6 +21,18 @@ public class instructionFetch extends ClockDependentUnit
 		queue2 = new ArrayDeque<Instruction>(queue2s);
 		
 	}
+	public int getAddress(Instruction i)
+	{
+		int counter = 0;
+		for(Instruction j : loadQueue)
+		{
+			if(j==i)
+				return counter;
+			else
+				counter++;
+		}
+		return -1;
+	}
 	public String toString()
 	{
 		String s ="The current queue contains " + queue2;
@@ -29,6 +41,25 @@ public class instructionFetch extends ClockDependentUnit
 	public boolean isEmpty()
 	{
 		return queue2.isEmpty();
+	}
+	public void clear(int curr)
+	{
+		for(Instruction i : loadQueue)
+		{
+			if(i.instructionType.ordinal()==18 || i.instructionType.ordinal() == 19)
+			{
+				i.operandOne = null;
+				i.operandTwo = null;
+			}
+			else if(i.instructionType.ordinal() == 20 || i.instructionType.ordinal()==21)
+			{
+				i.operandTwo = null;
+			}
+			i.isReadyOne = false;
+			i.isReadyTwo = false;
+		}
+		queue2.clear();
+		currNum = curr;
 	}
 	public void update() //move nf instructions to queue2
 	{
@@ -302,8 +333,6 @@ public class instructionFetch extends ClockDependentUnit
 		}
 		
 		//Now, we need to load the data in!
-		
-		
 		return memory;
 	}
 }
