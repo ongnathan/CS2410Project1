@@ -13,7 +13,7 @@ public class Instruction
 	public boolean isReadyOne;
 	public boolean isReadyTwo;// Is the instruction ready to be executed?
 	//public boolean hasMoved;
-	
+	public boolean readyToFinish;
 	/**
 	 * R-Type
 	 * @param instructionName
@@ -42,6 +42,7 @@ public class Instruction
 	
 	public Instruction(InstructionType instruction, Register<? extends Number> destination, Register<? extends Number> operandOne, Register<? extends Number> operandTwo, int immediate)
 	{
+		this.readyToFinish = false;
 		this.isReadyOne = false;
 		this.isReadyTwo = false;
 		this.instructionNum = instructionCounter;
@@ -80,7 +81,7 @@ public class Instruction
 	}
 	public static InstructionType decodeInstructionFromString(String type)
 	{
-		type = type.replaceAll("\\.", "P");
+		type = type.replace(".", "P");
 		return InstructionType.valueOf(type);
 	}
 	
