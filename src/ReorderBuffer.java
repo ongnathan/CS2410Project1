@@ -23,6 +23,13 @@ public class ReorderBuffer
 	{
 		return numItems;
 	}
+	public Instruction getIndex(int index)
+	{
+		if(index < queue.size())
+			return queue.get(index);
+		else
+			return null;
+	}
 	public Instruction getByInstructionNum(int num)
 	{
 		for(Instruction i : queue)
@@ -61,7 +68,7 @@ public class ReorderBuffer
 			return null;
 		else
 		{
-			if(queue.get(0).instructionNum > currInstructionNum) //This might cause problems when we branch, but we'll figure it out
+			if(queue.get(0).instructionNum > currInstructionNum || !queue.get(0).readyToFinish) //This might cause problems when we branch, but we'll figure it out
 			{
 				return null;
 			}
