@@ -46,4 +46,8 @@ public enum InstructionType
 	{
 		return this == DIVPD;
 	}
+	public boolean isStore()
+	{
+		return this == SD || this == SPD;
+	}
 }
