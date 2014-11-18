@@ -703,6 +703,11 @@ public class simulator
 				boolean [] onlyOne = new boolean[6]; // can only issue one instruction per reservationStation per cycle
 				for(int i = 0; i < nw; i++) //send the instruction to the appropriate reservationStation
 				{
+					if(decoder.peek()!=null && decoder.peek().destination.getName().equals("R0"))
+					{
+						System.out.println("Error: Cannot write into register R0");
+						return;
+					}
 					if(decoder.peek()!=null && ROB.isSpace())
 					{
 						int whichPlace = -1;
@@ -948,7 +953,7 @@ public class simulator
 			//Then send instructions to ROB for Write Back
 			//Keep track of all relevant statistics for this entire process
 			counter++;
-			System.out.println(counter+"\n\n\n\n");
+			/*System.out.println(counter+"\n\n\n\n");
 			System.out.println("----------Fetch Unit-----------\n\n");
 				System.out.println(fetch);
 			System.out.println("--------------Decode Unit--------------\n\n");
@@ -963,7 +968,7 @@ public class simulator
 			System.out.println("\n\n---------------------------Reorder Buffer------------------\n\n");
 			System.out.println(ROB);
 			//System.out.println("\n\n ------------Branch Predictor -------------\n\n");
-			//System.out.println(branchPreds);
+			//System.out.println(branchPreds);*/
 			if(everythingIsEmpty()) //Check if all instructions have been processed
 				break;
 		}
