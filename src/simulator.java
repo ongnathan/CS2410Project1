@@ -989,11 +989,17 @@ public class simulator
 				}
 			}
 		}
+		if(branchDump)
+		{
+			System.out.println("\n\n---------------Here is the branch prediction information----------------\n\n");
+			for(Integer a : branchPreds.keySet())
+			{
+				System.out.println("Instruction address: " + a + " is predicted to branch to " + branchPreds.get(a));
+			}
+		}
 		printStatistics();
 		
 	}
-	
-	
 	public static void getCommands(String [] args) // Gets all of the parameter arguments from user!
 	{
 	 //Default values!!!!
@@ -1032,7 +1038,7 @@ public class simulator
 			else if(args[i].toUpperCase().contains("NW"))
 				nw = Integer.parseInt(args[i+1]);
 			
-			else if (args[i].toUpperCase().contains("BRANCH"))
+			else if (args[i].toUpperCase().equals("BRANCH"))
 				predictBranch = false;
 			else if(args[i].equals("--dump_mem"))
 			{
@@ -1046,7 +1052,6 @@ public class simulator
 				registerDump = true;
 			else if(args[i].equals("--dump_branch"))
 				branchDump = true;
-			
 			else if(args[i].toUpperCase().equals("INT1"))
 				numStations[0] = Integer.parseInt(args[i+1]);
 			else if(args[i].toUpperCase().equals("MULT"))
