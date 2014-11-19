@@ -232,6 +232,8 @@ public class simulator
 							memLocations.remove(i);
 							double d = memory.get(Integer.valueOf(y));//result of the load
 							String x = i.destination.getName(); //Should return R1, F3 etc.
+							if(x.equals("R0"))
+								d = 0;
 							if(x.startsWith("R")) //Integer value / register
 							{
 								String regNum = x.substring(1,x.length());
@@ -455,6 +457,8 @@ public class simulator
 				used[1] = true;
 				curr = Iunit.getOutputInstruction();
 				int k = Iunit.getOutput().intValue();
+				if(curr.destination.getName().equals("R0"))
+					k = 0;
 				int resNumber = stations[0].getReservationNumber(curr);
 				stations[0].removeInstruction();
 				String x = "!I" + resNumber;
@@ -482,6 +486,8 @@ public class simulator
 				used[2] = true;
 				curr = Munit.getOutputInstruction();
 				int k = Munit.getOutput().intValue();
+				if(curr.destination.getName().equals("R0"))
+					k = 0;
 				int resNumber = stations[1].getReservationNumber(curr);
 				stations[1].removeInstruction();
 				String x = "*M" + resNumber;
@@ -534,6 +540,8 @@ public class simulator
 				used[4] = true;
 				curr = Funit.getOutputInstruction();
 				double k = Funit.getOutput().doubleValue();
+				if(curr.destination.getName().equals("R0"))
+					k = 0;
 				int resNumber = stations[3].getReservationNumber(curr);
 				stations[3].removeInstruction();
 				String x = "*F" + resNumber;
@@ -561,6 +569,8 @@ public class simulator
 				used[5] = true;
 				curr = Dunit.getOutputInstruction();
 				double k = Dunit.getOutput().doubleValue();
+				if(curr.destination.getName().equals("R0"))
+					k = 0;
 				int resNumber = stations[4].getReservationNumber(curr);
 				stations[4].removeInstruction();
 				String x = "*D" + resNumber;
@@ -703,11 +713,6 @@ public class simulator
 				boolean [] onlyOne = new boolean[6]; // can only issue one instruction per reservationStation per cycle
 				for(int i = 0; i < nw; i++) //send the instruction to the appropriate reservationStation
 				{
-					if(decoder.peek()!=null && decoder.peek().destination.getName().equals("R0"))
-					{
-						System.out.println("Error: Cannot write into register R0");
-						return;
-					}
 					if(decoder.peek()!=null && ROB.isSpace())
 					{
 						int whichPlace = -1;
