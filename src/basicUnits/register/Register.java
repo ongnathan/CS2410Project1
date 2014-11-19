@@ -18,7 +18,14 @@ public class Register<T extends Number> extends ClockDependentUnit
 	{
 		super(Integer.MAX_VALUE);
 		this.name = name;
-		this.value = value;
+		if(this.name.equals("R0"))
+		{
+			this.value = (T)(Integer)0;
+		}
+		else
+		{
+			this.value = value;
+		}
 	}
 	
 	public T getValue()
@@ -28,13 +35,18 @@ public class Register<T extends Number> extends ClockDependentUnit
 	
 	public void setValue(T value)
 	{
-		
-		this.value = value;
+		if(!this.name.equals("R0"))
+		{
+			this.value = value;
+		}
 	}
 	
 	public void setValue(Integer i)
 	{
-		this.value = (T)i;
+		if(!this.name.equals("R0"))
+		{
+			this.value = (T)i;
+		}
 	}
 	
 	public void setValue(Double d)
