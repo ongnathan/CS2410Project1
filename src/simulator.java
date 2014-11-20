@@ -837,7 +837,7 @@ public class simulator
 							else //get the instruction and check if the value is ready
 							{
 								Instruction ii = ROB.getIndex(counterOne);
-								if(ii.readyToFinish) //if it's a load get the value from memlocations,
+								if(renameMap.get(ii)!= null && ii.readyToFinish) //if it's a load get the value from memlocations,
 								{
 									int renameIndex = renameMap.get(ii);
 									if(curr.operandOne.getName().startsWith("R"))
