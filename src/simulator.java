@@ -425,11 +425,9 @@ public class simulator
 	//We can only move execToWrite instructions to the ROB in one cycle
 		for(int i = 0; i < execToWrite; i++)
 		{
-			
-			int iFound = -1; //holds whether an integer renaming register is available
-			int fFound = -1;//holds whether a float renaming register is available
+			//holds whether a float renaming register is available
 			Instruction curr = null;
-			for(int j = 0; j < intRenaming; j++)
+			/*for(int j = 0; j < intRenaming; j++)
 				{
 					if(Ir[j] == false)
 					{
@@ -437,7 +435,7 @@ public class simulator
 					}
 					if(Fr[j] == false)
 						fFound = j;
-				}
+				}*/
 			if(Bunit.isOutputReady() && ! used[0])
 			{
 				exToRenameThisCycle++;
@@ -451,7 +449,7 @@ public class simulator
 				
 				
 			}
-			if(Iunit.isOutputReady() && iFound != -1 && !used[1])
+			if(Iunit.isOutputReady()  && !used[1])
 			{
 				exToRenameThisCycle++;
 				used[1] = true;
@@ -474,13 +472,12 @@ public class simulator
 					}
 					needResult.remove(curr);
 				}
-				Ir[iFound] = true;
-				Irenaming[iFound] = k;
-				renameMap.put(curr,iFound);
+				Irenaming[curr.renameIndex] = k;
+				renameMap.put(curr,curr.renameIndex);
 				curr.readyToFinish = true;
 				//ROB.add(curr);
 			}
-			else if(Munit.isOutputReady() && iFound != -1 && !used[2])
+			else if(Munit.isOutputReady()  && !used[2])
 			{
 				exToRenameThisCycle++;
 				used[2] = true;
@@ -503,7 +500,7 @@ public class simulator
 					}
 					needResult.remove(curr);
 				}
-				Ir[iFound] = true;
+				int iFound = curr.renameIndex;
 				Irenaming[iFound] = k;
 				renameMap.put(curr,iFound);
 				curr.readyToFinish = true;
@@ -534,7 +531,7 @@ public class simulator
 				curr.readyToFinish = true;
 				//ROB.add(curr);
 			}
-			else if(Funit.isOutputReady() && fFound != -1 && ! used[4])
+			else if(Funit.isOutputReady() && ! used[4])
 			{
 				exToRenameThisCycle++;
 				used[4] = true;
@@ -557,13 +554,13 @@ public class simulator
 					}
 					needResult.remove(curr);
 				}
-				Fr[fFound] = true;
+				int fFound = curr.renameIndex;
 				Frenaming[fFound] = k;
 				curr.readyToFinish = true;
 				//ROB.add(curr);
 				renameMap.put(curr,fFound);				
 			}
-			else if(Dunit.isOutputReady() && fFound != -1 && !used[5])
+			else if(Dunit.isOutputReady() && !used[5])
 			{
 				exToRenameThisCycle++;
 				used[5] = true;
@@ -586,7 +583,7 @@ public class simulator
 					}
 					needResult.remove(curr);
 				}
-				Fr[fFound] = true;
+				int fFound = curr.renameIndex;
 				Frenaming[fFound] = k;
 				curr.readyToFinish = true;
 				//ROB.add(curr);
@@ -713,27 +710,42 @@ public class simulator
 				boolean [] onlyOne = new boolean[6]; // can only issue one instruction per reservationStation per cycle
 				for(int i = 0; i < nw; i++) //send the instruction to the appropriate reservationStation
 				{
+					int iFound = -1;
+					int fFound = -1;
+					for(int j = 0; j < intRenaming; j++)
+					{
+						if(Ir[j] == false)
+						{
+							iFound = j;
+						}
+						if(Fr[j] == false)
+						fFound = j;
+					}
 					if(decoder.peek()!=null && ROB.isSpace())
 					{
 						int whichPlace = -1;
 						Instruction curr = null;
 						boolean isStore = false;
-						if(decoder.peek().instructionType.isINT1() && onlyOne[0] == false)
+						if(decoder.peek().instructionType.isINT1() && onlyOne[0] == false && iFound != -1)
 						{
 							if(stations[0].addInstruction(decoder.peek()))
 							{
 								whichPlace = 0;
 								onlyOne[0] = true;
 								curr = decoder.issue();
+								Ir[iFound] = true;
+								curr.renameIndex = iFound;
 							}
 						}
-						else if(decoder.peek().instructionType.isMULT() && onlyOne[1] == false)
+						else if(decoder.peek().instructionType.isMULT() && onlyOne[1] == false && iFound != -1)
 						{
 							if(stations[1].addInstruction(decoder.peek()))
 							{
 								whichPlace = 1;
 								curr = decoder.issue();
 								onlyOne[1] = true;
+								Ir[iFound] = true;
+								curr.renameIndex = iFound;
 							}
 						}
 						else if(decoder.peek().instructionType.isLOAD()&&onlyOne[2] == false)
@@ -750,22 +762,26 @@ public class simulator
 								onlyOne[2] = true;
 							}
 						}
-						else if(decoder.peek().instructionType.isFPU() && onlyOne[3] == false)
+						else if(decoder.peek().instructionType.isFPU() && onlyOne[3] == false && fFound != -1)
 						{
 							if(stations[3].addInstruction(decoder.peek()))
 							{
 								whichPlace = 3;
 								curr = decoder.issue();
 								onlyOne[3] = true;
+								Fr[fFound] = true;
+								curr.renameIndex = fFound;
 							}
 						}
-						else if(decoder.peek().instructionType.isFPDIV() && onlyOne[4] == false)
+						else if(decoder.peek().instructionType.isFPDIV() && onlyOne[4] == false && fFound != -1)
 						{
 							if(stations[4].addInstruction(decoder.peek()))
 							{
 								whichPlace = 4;
 								curr = decoder.issue();
 								onlyOne[4] = true;
+								Fr[fFound] = true;
+								curr.renameIndex = fFound;
 							}
 						}
 						else if(decoder.peek().instructionType.isBranch()&&onlyOne[5] == false)
