@@ -606,6 +606,9 @@ public class simulator
 		{
 			if(Ir[i] == true)
 				iCount++;
+		}
+		for(int i = 0; i < floatRenaming; i++)
+		{
 			if(Fr[i] == true)
 				fCount++;
 		}
@@ -718,8 +721,11 @@ public class simulator
 						{
 							iFound = j;
 						}
-						if(Fr[j] == false)
-						fFound = j;
+					}
+					for(int k = 0; k < floatRenaming; k++)
+					{
+						if(Fr[k] == false)
+							fFound = k;
 					}
 					if(decoder.peek()!=null && ROB.isSpace())
 					{
