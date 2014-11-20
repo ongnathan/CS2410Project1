@@ -14,6 +14,7 @@ public class Instruction
 	public boolean isReadyTwo;// Is the instruction ready to be executed?
 	//public boolean hasMoved;
 	public boolean readyToFinish;
+	public int renameIndex;
 	/**
 	 * R-Type
 	 * @param instructionName
@@ -42,6 +43,7 @@ public class Instruction
 	
 	public Instruction(InstructionType instruction, Register<? extends Number> destination, Register<? extends Number> operandOne, Register<? extends Number> operandTwo, int immediate)
 	{
+		this.renameIndex = -1;
 		this.readyToFinish = false;
 		this.isReadyOne = false;
 		this.isReadyTwo = false;
